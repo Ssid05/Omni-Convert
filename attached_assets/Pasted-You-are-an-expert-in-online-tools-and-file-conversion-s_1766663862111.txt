@@ -1,0 +1,29 @@
+You are an expert in online tools and file conversion services. Provide a complete, detailed overview of the CloudConvert website[](https://cloudconvert.com), as if explaining it to someone who has never used it before.
+
+Structure your response clearly with the following sections:
+
+1. **Introduction**: What is CloudConvert? When was it launched? Why is it popular and trusted?
+
+2. **How It Works**: Step-by-step explanation of the conversion process, including uploading files, selecting formats, optional settings, and downloading results. Mention support for batch conversions and any browser requirements.
+
+3. **Key Features**: List and explain all major features, such as:
+   - Advanced conversion options (quality, resolution, bitrate, watermarks, etc.)
+   - Additional tools (compression, merging, archive creation/extraction, website screenshot capture, etc.)
+   - Cloud storage integrations (Google Drive, Dropbox, OneDrive, etc.)
+   - API for developers
+   - Security and privacy measures (encryption, file deletion policy, certifications like ISO 27001, GDPR compliance)
+
+4. **Supported Formats and Conversions**: 
+   - How many formats does it support in total?
+   - Break down by categories: Audio, Video, Documents, Images, Spreadsheets, Presentations, Ebooks, Archives, CAD, and any others.
+   - Give examples of popular formats in each category.
+   - Mention that it supports over 200 formats and most technically possible conversions.
+
+5. **Pricing and Limitations**:
+   - Free plan details (daily limits, etc.)
+   - Paid plans overview (pay-as-you-go, subscriptions, what they unlock like higher limits, larger files, more concurrent jobs)
+   - Note that exact pricing should be checked on their site.
+
+6. **Pros and Any Notable Notes**: Advantages, speed, accuracy, and any tips or alternatives if relevant.
+
+Make the response informative, well-organized with bullet points and headings, and up-to-date based on the latest available information from the official site. Do not make up details—base everything on real features of CloudConvert.
