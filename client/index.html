@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+<link rel="icon" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <title>File Converter - Convert Any File Format</title>
+    <title>Omni-Convert – Convert Any File Format</title>
     <meta name="description" content="Free online file converter. Convert images, documents, and more. Supports PNG, JPG, WEBP, TIFF, PDF, TXT, DOC, DOCX formats." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,6 +12,18 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        const link = document.getElementById("app-favicon");
+        if (!link) return;
+        const img = new Image();
+        img.onload = () => {
+          if (!img.width || !img.height) link.remove();
+        };
+        img.onerror = () => link.remove();
+        img.src = link.href;
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
