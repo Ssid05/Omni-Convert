@@ -13,7 +13,7 @@ The key idea is **freedom of choice**:
 - 📂 Upload any file (PDF, JPG, PNG, TXT, DOC, DOCX, etc.)
 - 🔽 “Convert to” dropdown always shows **ALL formats**
 - 🖼 Image-to-image conversion using **Sharp**
-- 📄 Basic document conversions (PDF ↔ TXT, DOC/DOCX attempts)
+-  Basic document conversions (PDF ↔ TXT, DOC/DOCX attempts)
 - ⚠️ Friendly error messages for unsupported conversions
 - ⬇️ Download converted files instantly
 - 🧮 **Endless visitor counter** (counts every visit, never resets)
