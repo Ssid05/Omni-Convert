@@ -13,9 +13,16 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "cloudconvert": "^3.0.0",
     "cors": "^2.8.5",
+    "docx": "^9.5.1",
     "express": "^5.2.1",
-    "multer": "^2.0.2"
+    "mammoth": "^1.11.0",
+    "multer": "^2.0.2",
+    "pdf-lib": "^1.17.1",
+    "pdf2pic": "^3.2.0",
+    "sharp": "^0.34.5",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
