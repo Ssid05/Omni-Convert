@@ -9,7 +9,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 const execAsync = promisify(exec);
 import { PDFDocument } from "pdf-lib";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import { Document, ImageRun, Packer, Paragraph, TextRun } from "docx";
 import mammoth from "mammoth";
 import CloudConvert from "cloudconvert";
 import { conversionRequestSchema, SUPPORTED_FORMATS, type SupportedFormat, type ConversionResponse } from "@shared/schema";
@@ -196,21 +196,35 @@ async function convertPdfToWordBasic(inputPath: string, outputPath: string): Pro
   const tempTxtPath = inputPath + ".txt";
   
   try {
-    await execAsync(`pdftotext -layout "${inputPath}" "${tempTxtPath}"`);
+    // keep layout as much as possible and avoid page-break markers
+    await execAsync(`pdftotext -layout -nopgbrk "${inputPath}" "${tempTxtPath}"`);
     
     const textContent = fs.readFileSync(tempTxtPath, "utf-8");
     const lines = textContent.split("\n");
-    
-    const paragraphs = lines.map(line => 
-      new Paragraph({
-        children: [new TextRun(line || " ")],
-      })
-    );
-    
+
+    // use monospace font and explicit breaks to retain column alignment
     const doc = new Document({
+      styles: {
+        default: {
+          document: {
+            run: { font: "Times New Roman", size: 24 }, // 12pt
+          },
+        },
+      },
       sections: [{
         properties: {},
-        children: paragraphs,
+        children: [
+          new Paragraph({
+            children: lines.map((line, idx) =>
+              new TextRun({
+                text: line || " ",
+                font: "Times New Roman",
+                size: 24,
+                break: idx === 0 ? undefined : 1,
+              }),
+            ),
+          }),
+        ],
       }],
     });
     
@@ -229,6 +243,86 @@ async function convertPdfToWordBasic(inputPath: string, outputPath: string): Pro
   }
 }
 
+async function getPdfPageCount(inputPath: string): Promise<number> {
+  const bytes = await fs.promises.readFile(inputPath);
+  const doc = await PDFDocument.load(bytes);
+  return doc.getPageCount();
+}
+
+async function convertPdfToWordSnapshot(inputPath: string, outputPath: string): Promise<void> {
+  const pageCount = await getPdfPageCount(inputPath);
+  if (pageCount === 0) {
+    throw new Error("PDF appears to be empty");
+  }
+
+  const options = {
+    density: 180,
+    saveFilename: `pdf-snapshot-${Date.now()}`,
+    savePath: convertedDir,
+    format: "png" as const,
+    width: 1200,
+    height: 1600,
+  };
+
+  const convert = fromPath(inputPath, options);
+  const imagePaths: string[] = [];
+
+  try {
+    for (let page = 1; page <= pageCount; page++) {
+      const result = await convert(page);
+      if (!result || !result.path) {
+        throw new Error(`Failed to render page ${page}`);
+      }
+      imagePaths.push(result.path);
+    }
+
+    const paragraphs: Paragraph[] = [];
+    for (const imgPath of imagePaths) {
+      const buffer = await fs.promises.readFile(imgPath);
+      const meta = await sharp(buffer).metadata();
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new ImageRun({
+              data: buffer,
+              transformation: {
+                width: meta.width ?? 1200,
+                height: meta.height ?? 1600,
+              },
+            }),
+          ],
+          spacing: { after: 300 },
+        }),
+      );
+    }
+
+    const doc = new Document({
+      styles: {
+        default: {
+          document: {
+            run: { font: "Times New Roman", size: 24 },
+          },
+        },
+      },
+      sections: [
+        {
+          properties: {},
+          children: paragraphs,
+        },
+      ],
+    });
+
+    const buffer = await Packer.toBuffer(doc);
+    fs.writeFileSync(outputPath, buffer);
+  } finally {
+    for (const imgPath of imagePaths) {
+      if (fs.existsSync(imgPath)) {
+        fs.unlinkSync(imgPath);
+      }
+    }
+  }
+}
+
 async function convertPdfToWord(inputPath: string, outputPath: string): Promise<void> {
   if (cloudConvert) {
     try {
@@ -238,6 +332,13 @@ async function convertPdfToWord(inputPath: string, outputPath: string): Promise<
       console.error("CloudConvert failed, falling back to basic conversion:", error.message);
     }
   }
+  try {
+    await convertPdfToWordSnapshot(inputPath, outputPath);
+    return;
+  } catch (error: any) {
+    console.error("PDF snapshot-to-WORD fallback failed:", error.message);
+  }
+
   await convertPdfToWordBasic(inputPath, outputPath);
 }
 
@@ -272,33 +373,34 @@ async function convertWordToPdfBasic(inputPath: string, outputPath: string): Pro
     const pageHeight = 792;
     const margin = 50;
     const fontSize = 12;
-    const lineHeight = fontSize * 1.5;
-    const maxCharsPerLine = 80;
-    
+    const lineHeight = fontSize * 1.4;
+    const maxWidth = pageWidth - 2 * margin;
+    const font = await pdfDoc.embedFont("Courier" as any);
+
     const lines = text.split("\n");
     const wrappedLines: string[] = [];
-    
+
+    // wrap using measured width to avoid mid-word breaks
     for (const line of lines) {
-      if (line.length <= maxCharsPerLine) {
-        wrappedLines.push(line);
-      } else {
-        let remaining = line;
-        while (remaining.length > maxCharsPerLine) {
-          let breakPoint = remaining.lastIndexOf(" ", maxCharsPerLine);
-          if (breakPoint === -1) breakPoint = maxCharsPerLine;
-          wrappedLines.push(remaining.substring(0, breakPoint));
-          remaining = remaining.substring(breakPoint).trim();
+      const words = line.split(/(\s+)/);
+      let current = "";
+      for (const word of words) {
+        const candidate = current + word;
+        const width = font.widthOfTextAtSize(candidate, fontSize);
+        if (width <= maxWidth || current.length === 0) {
+          current = candidate;
+        } else {
+          wrappedLines.push(current.trimEnd());
+          current = word.trimStart();
         }
-        if (remaining) wrappedLines.push(remaining);
       }
+      wrappedLines.push(current.trimEnd());
     }
     
     const linesPerPage = Math.floor((pageHeight - 2 * margin) / lineHeight);
     let currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
     let y = pageHeight - margin;
     let lineCount = 0;
-    
-    const font = await pdfDoc.embedFont("Helvetica" as any);
     
     for (const line of wrappedLines) {
       if (lineCount >= linesPerPage) {
@@ -311,7 +413,7 @@ async function convertWordToPdfBasic(inputPath: string, outputPath: string): Pro
         x: margin,
         y: y - lineHeight,
         size: fontSize,
-        font: font,
+        font,
       });
       
       y -= lineHeight;
