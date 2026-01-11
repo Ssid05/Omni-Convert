@@ -12,7 +12,7 @@ import { PDFDocument } from "pdf-lib";
 import { Document, ImageRun, Packer, Paragraph, TextRun } from "docx";
 import mammoth from "mammoth";
 import CloudConvert from "cloudconvert";
-import { conversionRequestSchema, SUPPORTED_FORMATS, type SupportedFormat, type ConversionResponse } from "@shared/schema";
+import { conversionRequestSchema, SUPPORTED_FORMATS, type SupportedFormat, type ConversionResponse } from "../shared/schema";
 
 const cloudConvertApiKey = process.env.CLOUDCONVERT_API_KEY;
 const cloudConvert = cloudConvertApiKey ? new CloudConvert(cloudConvertApiKey) : null;
@@ -285,11 +285,12 @@ async function convertPdfToWordSnapshot(inputPath: string, outputPath: string): 
           children: [
             new ImageRun({
               data: buffer,
+              type: "png",
               transformation: {
                 width: meta.width ?? 1200,
                 height: meta.height ?? 1600,
               },
-            }),
+            } as any),
           ],
           spacing: { after: 300 },
         }),
